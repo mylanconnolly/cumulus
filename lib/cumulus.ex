@@ -101,8 +101,13 @@ defmodule Cumulus do
     object name is invalid
   - `{:ok, body}` is used to return the object's contents
   """
-  def get_object_media(bucket, object) when is_binary(bucket) and is_binary(object) do
-    case HTTPoison.get(object_media_url(bucket, object), [auth_header()]) do
+  def get_object_media(bucket, object, key \\ nil, hash \\ nil) when is_binary(bucket) and is_binary(object) do
+    headers =
+      case [key, hash] do
+        [k, h] when is_binary(k) and is_binary(h) -> crypt_headers(k, h)
+        _ -> [auth_header()]
+      end
+    case HTTPoison.get(object_media_url(bucket, object), headers) do
       {:ok, %Response{status_code: 200, body: body}} -> {:ok, body}
       {:ok, %Response{status_code: 400}} -> {:error, :invalid_request}
       {:ok, %Response{status_code: 401}} -> {:error, :not_authorized}
@@ -113,6 +118,14 @@ defmodule Cumulus do
   defp auth_header do
     {:ok, %Goth.Token{token: token, type: type}} = Goth.Token.for_scope(@auth_scope)
     {:Authorization, "#{type} #{token}"}
+  end
+
+  defp crypt_headers(key, hash) when is_binary(key) and is_binary(hash) do
+    [auth_header() | [
+      "x-goog-encryption-algorithm": "AES256",
+      "x-goog-encryption-key": key,
+      "x-goog-encryption-key-sha256": hash
+    ]]
   end
 
   defp bucket_namespace(bucket) when is_binary(bucket), do: "b/#{bucket}"
