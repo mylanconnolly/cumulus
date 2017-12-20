@@ -78,7 +78,7 @@ defmodule Cumulus do
 
   defp auth_header do
     {:ok, %Goth.Token{token: token, type: type}} = Goth.Token.for_scope(@auth_scope)
-    {:"Authorization", "#{type} #{token}"}
+    {:Authorization, "#{type} #{token}"}
   end
 
   defp bucket_namespace(bucket) when is_binary(bucket), do: "b/#{bucket}"
