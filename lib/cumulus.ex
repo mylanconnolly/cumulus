@@ -100,7 +100,7 @@ defmodule Cumulus do
     object name is invalid
   - `{:ok, object}` means the file was saved successfully
   """
-  def save_file(bucket, object, filepath, key \\ nil, hash \\ nil) do
+  def save_object(bucket, object, filepath, key \\ nil, hash \\ nil) do
     headers =
       case [key, hash] do
         [k, h] when is_binary(k) and is_binary(h) -> crypt_headers(k, h)
