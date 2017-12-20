@@ -19,7 +19,7 @@ defmodule CumulusTest do
 
   describe "Cumulus.bucket_upload_url/1" do
     test "it returns a properly-formatted Google Cloud Storage URL" do
-      assert bucket_upload_url("123") == "https://www.googleapis.com/upload/storage/v1/b/123/o"
+      assert bucket_upload_url("123") == "https://www.googleapis.com/upload/storage/v1/b/123/o?uploadType=media"
     end
   end
 

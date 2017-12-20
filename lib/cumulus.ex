@@ -34,7 +34,7 @@ defmodule Cumulus do
   uses a different endpoint for uploading files.
   """
   def bucket_upload_url(bucket) when is_binary(bucket),
-    do: "#{@api_host}/#{@upload_namespace}/#{bucket_namespace(bucket)}/o"
+    do: "#{@api_host}/#{@upload_namespace}/#{bucket_namespace(bucket)}/o?uploadType=media"
 
   @doc """
   This is the function responsible for finding a bucket in Google Cloud Storage
