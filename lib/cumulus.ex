@@ -52,6 +52,17 @@ defmodule Cumulus do
     end
   end
 
+  @doc """
+  This is the function responsible for finding an object in Google Cloud Storage
+  and returning it. Possible return values are:
+
+  - `{:error, :not_found}` is used for buckets that are not found in the system
+  - `{:error, :not_authorized}` is used for buckets that you do not have access
+    to
+  - `{:error}`
+  - `{:ok, bucket}` is for successful responses and where we can successfully
+    parse the response as a bucket.
+  """
   def get_object(bucket, object) when is_binary(bucket) and is_binary(object) do
     with {:ok, %Response{body: body, status_code: 200}} <- HTTPoison.get(object_url(bucket, object), [auth_header()]),
          {:ok, data} <- Poison.decode(body),
