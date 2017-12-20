@@ -14,9 +14,9 @@ defmodule Cumulus.Bucket do
   @doc """
   This is the function used to convert a JSON response into a struct. It
   accepts a map (like what would be decoded by `Poison`) and returns the
-  parsed version. It must match the expected schema, otherwise a panic occurs.
+  parsed version.
   """
-  def from_json!(%{
+  def from_json(%{
     "id" => id,
     "selfLink" => self_link,
     "name" => name,
@@ -27,18 +27,22 @@ defmodule Cumulus.Bucket do
     "storageClass" => storage_class,
     "etag" => etag
   }) do
-    {:ok, time_created_ts, _} = DateTime.from_iso8601(time_created)
-    {:ok, updated_ts, _} = DateTime.from_iso8601(updated)
-    %__MODULE__{
-      id: id,
-      self_link: self_link,
-      name: name,
-      time_created: time_created_ts,
-      updated: updated_ts,
-      metageneration: metageneration,
-      location: location,
-      storage_class: storage_class,
-      etag: etag
-    }
+    with {:ok, time_created_ts, _} <- DateTime.from_iso8601(time_created),
+         {:ok, updated_ts, _} <- DateTime.from_iso8601(updated) do
+      {:ok, %__MODULE__{
+        id: id,
+        self_link: self_link,
+        name: name,
+        time_created: time_created_ts,
+        updated: updated_ts,
+        metageneration: metageneration,
+        location: location,
+        storage_class: storage_class,
+        etag: etag
+      }}
+    else
+      _ -> {:error, :invalid_format}
+    end
   end
+  def from_json(_), do: {:error, :invalid_format}
 end

@@ -1,5 +1,6 @@
 defmodule Cumulus do
   alias Cumulus.Bucket
+  alias HTTPoison.Response
 
   @api_host "https://www.googleapis.com"
   @storage_namespace "storage/v1"
@@ -34,23 +35,20 @@ defmodule Cumulus do
   - `{:error, :not_found}` is used for buckets that are not found in the system
   - `{:error, :not_authorized}` is used for buckets that you do not have access
     to
+  - `{:error}`
   - `{:ok, bucket}` is for successful responses and where we can successfully
     parse the response as a bucket.
-
-  This function will panic in the event that the response could not be
-  correctly parsed.
   """
-  def get_bucket!(bucket) when is_binary(bucket) do
-    case HTTPoison.get(bucket_url(bucket), [auth_header()]) do
-      {:ok, %HTTPoison.Response{status_code: 404}} -> {:error, :not_found}
-      {:ok, %HTTPoison.Response{status_code: 401}} -> {:error, :not_authorized}
-      {:ok, %HTTPoison.Response{body: body, status_code: 200}} ->
-        bucket =
-          body
-          |> Poison.decode!()
-          |> Bucket.from_json!()
-        {:ok, bucket}
-      {:error, reason} -> {:error, reason}
+  def get_bucket(bucket) when is_binary(bucket) do
+    with {:ok, %Response{body: body, status_code: 200}} <- HTTPoison.get(bucket_url(bucket), [auth_header()]),
+         {:ok, data} <- Poison.decode(body),
+         {:ok, bucket} <- Bucket.from_json(data) do
+      {:ok, bucket}
+    else
+      {:ok, %Response{status_code: 400}} -> {:error, :invalid_request}
+      {:ok, %Response{status_code: 401}} -> {:error, :not_authorized}
+      {:ok, %Response{status_code: 404}} -> {:error, :not_found}
+      {:error, :invalid_format} -> {:error, :invalid_format}
     end
   end
 

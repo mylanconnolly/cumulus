@@ -1,6 +1,4 @@
 defmodule Cumulus.Object do
-  alias Cumulus.{ACL, CustomerEncryption, Owner}
-
   defstruct [
     id: nil,
     self_link: nil,
@@ -22,20 +20,17 @@ defmodule Cumulus.Object do
     content_language: nil,
     cache_control: nil,
     metadata: nil,
-    acl: nil,
-    owner: nil,
     crc32c: nil,
     component_count: nil,
-    etag: nil,
-    customer_encryption: nil
+    etag: nil
   ]
 
   @doc """
   This is the function used to convert a JSON response into a struct. It
   accepts a map (like what would be decoded by `Poison`) and returns the
-  parsed version. It must match the expected schema, otherwise a panic occurs.
+  parsed version.
   """
-  def from_json!(%{
+  def from_json(%{
     "id" => id,
     "selfLink" => self_link,
     "name" => name,
@@ -57,12 +52,9 @@ defmodule Cumulus.Object do
     "cacheControl" => cache_control,
     "crc32c" => crc32c,
     "componentCount" => component_count,
-    "etag" => etag,
-    "customerEncryption" => customer_encryption,
-    "owner" => owner,
-    "acl" => acl
+    "etag" => etag
   }) do
-    %__MODULE__{
+    {:ok, %__MODULE__{
       id: id,
       self_link: self_link,
       name: name,
@@ -84,10 +76,8 @@ defmodule Cumulus.Object do
       cache_control: cache_control,
       crc32c: crc32c,
       component_count: component_count,
-      etag: etag,
-      customer_encryption: CustomerEncryption.from_json!(customer_encryption),
-      owner: Owner.from_json!(owner),
-      acl: ACL.from_json!(acl)
-    }
+      etag: etag
+    }}
   end
+  def from_json(_), do: {:error, :invalid_format}
 end
