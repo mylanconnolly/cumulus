@@ -119,6 +119,26 @@ defmodule Cumulus do
 
   @doc """
   This is the function responsible for finding an object in Google Cloud Storage
+  and deleting it. Possible return values are:
+
+  - `{:error, :not_found}` is used for buckets that are not found in the system
+  - `{:error, :not_authorized}` is used for buckets that you do not have access
+    to
+  - `{:error, :invalid_request}` is used for requests where the bucket or
+    object name is invalid
+  - `:ok` is used to return the object's contents
+  """
+  def delete_object(bucket, object) do
+    case HTTPoison.delete(object_url(bucket, object), [auth_header()]) do
+      {:ok, %Response{status_code: 204}} -> :ok
+      {:ok, %Response{status_code: 400}} -> {:error, :invalid_request}
+      {:ok, %Response{status_code: 401}} -> {:error, :not_authorized}
+      {:ok, %Response{status_code: 404}} -> {:error, :not_found}
+    end
+  end
+
+  @doc """
+  This is the function responsible for finding an object in Google Cloud Storage
   and returning the file itself. Possible return values are:
 
   - `{:error, :not_found}` is used for buckets that are not found in the system
