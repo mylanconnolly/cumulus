@@ -33,8 +33,8 @@ defmodule Cumulus do
   for upload purposes. This is separate from `bucket_url/1` because Google
   uses a different endpoint for uploading files.
   """
-  def bucket_upload_url(bucket) when is_binary(bucket),
-    do: "#{@api_host}/#{@upload_namespace}/#{bucket_namespace(bucket)}/o?uploadType=media"
+  def bucket_upload_url(bucket, object) when is_binary(bucket) and is_binary(object),
+    do: "#{@api_host}/#{@upload_namespace}/#{bucket_namespace(bucket)}/o?uploadType=resumable&name=#{object}"
 
   @doc """
   This is the function responsible for finding a bucket in Google Cloud Storage
@@ -91,6 +91,33 @@ defmodule Cumulus do
   end
 
   @doc """
+  This function is used to save a file into a given bucket.
+
+  - `{:error, :not_found}` is used for buckets that are not found in the system
+  - `{:error, :not_authorized}` is used for buckets that you do not have access
+    to
+  - `{:error, :invalid_request}` is used for requests where the bucket or
+    object name is invalid
+  - `{:ok, object}` means the file was saved successfully
+  """
+  def save_file(bucket, object, filepath, key \\ nil, hash \\ nil) do
+    headers =
+      case [key, hash] do
+        [k, h] when is_binary(k) and is_binary(h) -> crypt_headers(k, h)
+        _ -> [auth_header()]
+      end
+    headers = [{:"X-Upload-Content-Type", MIME.from_path(filepath)} | headers]
+    case HTTPoison.post(bucket_upload_url(bucket, object), "", headers) do
+      {:ok, %Response{status_code: 200, headers: headers}} ->
+        location = get_location(headers)
+        put_file(location, filepath, key, hash)
+      {:ok, %Response{status_code: 400}} -> {:error, :invalid_request}
+      {:ok, %Response{status_code: 401}} -> {:error, :not_authorized}
+      {:ok, %Response{status_code: 404}} -> {:error, :not_found}
+    end
+  end
+
+  @doc """
   This is the function responsible for finding an object in Google Cloud Storage
   and returning the file itself. Possible return values are:
 
@@ -115,6 +142,13 @@ defmodule Cumulus do
     end
   end
 
+  defp get_location(headers) do
+    Enum.reduce(headers, nil, &check_location_header/2)
+  end
+
+  defp check_location_header({"Location", value}, _), do: value
+  defp check_location_header({_, _}, acc), do: acc
+
   defp auth_header do
     {:ok, %Goth.Token{token: token, type: type}} = Goth.Token.for_scope(@auth_scope)
     {:Authorization, "#{type} #{token}"}
@@ -134,4 +168,23 @@ defmodule Cumulus do
     do: "o/#{encode_path_component(object)}"
 
   defp encode_path_component(component), do: URI.encode_www_form(component)
+
+  defp put_file(location, filepath, key \\ nil, hash \\ nil) do
+    headers =
+      case [key, hash] do
+        [k, h] when is_binary(k) and is_binary(h) -> crypt_headers(k, h)
+        _ -> [auth_header()]
+      end
+    with {:ok, bytes} <- File.read(filepath),
+         {:ok, %Response{status_code: 200, body: body}} <- HTTPoison.put(location, bytes, headers),
+         {:ok, data} <- Poison.decode(body),
+         {:ok, object} <- Object.from_json(data) do
+      {:ok, object}
+     else
+       {:ok, %Response{status_code: 400}} -> {:error, :invalid_request}
+       {:ok, %Response{status_code: 401}} -> {:error, :not_authorized}
+       {:ok, %Response{status_code: 404}} -> {:error, :not_found}
+       {:error, :invalid_format} -> {:error, :invalid_format}
+    end
+  end
 end

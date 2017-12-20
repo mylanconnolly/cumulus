@@ -23,7 +23,8 @@ defmodule Cumulus.Mixfile do
     [
       {:httpoison, "~> 0.13"},
       {:poison, "~> 3.1"},
-      {:goth, "~> 0.7.1"}
+      {:goth, "~> 0.7.1"},
+      {:mime, "~> 1.1.0"}
     ]
   end
 end
