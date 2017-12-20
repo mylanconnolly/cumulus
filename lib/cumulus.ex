@@ -103,7 +103,7 @@ defmodule Cumulus do
   """
   def get_object_media(bucket, object) when is_binary(bucket) and is_binary(object) do
     case HTTPoison.get(object_media_url(bucket, object), [auth_header()]) do
-      {:ok, %Response{status_code: 200, body}} -> {:ok, body}
+      {:ok, %Response{status_code: 200, body: body}} -> {:ok, body}
       {:ok, %Response{status_code: 400}} -> {:error, :invalid_request}
       {:ok, %Response{status_code: 401}} -> {:error, :not_authorized}
       {:ok, %Response{status_code: 404}} -> {:error, :not_found}

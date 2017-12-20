@@ -5,6 +5,12 @@ defmodule CumulusTest do
 
   doctest Cumulus
 
+  describe "Cumulus.object_media_url/2" do
+    test "it returns a properly-formatted Google Cloud Storage URL" do
+      assert object_media_url("123", "456") == "https://www.googleapis.com/storage/v1/b/123/o/456?alt=media"
+    end
+  end
+
   describe "Cumulus.object_url/2" do
     test "it returns a properly-formatted Google Cloud Storage URL" do
       assert object_url("123", "456") == "https://www.googleapis.com/storage/v1/b/123/o/456"
