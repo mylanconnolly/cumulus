@@ -1,5 +1,5 @@
 defmodule Cumulus do
-  alias Cumulus.Bucket
+  alias Cumulus.{Bucket, Object}
   alias HTTPoison.Response
 
   @api_host "https://www.googleapis.com"
@@ -44,6 +44,19 @@ defmodule Cumulus do
          {:ok, data} <- Poison.decode(body),
          {:ok, bucket} <- Bucket.from_json(data) do
       {:ok, bucket}
+    else
+      {:ok, %Response{status_code: 400}} -> {:error, :invalid_request}
+      {:ok, %Response{status_code: 401}} -> {:error, :not_authorized}
+      {:ok, %Response{status_code: 404}} -> {:error, :not_found}
+      {:error, :invalid_format} -> {:error, :invalid_format}
+    end
+  end
+
+  def get_object(bucket, object) when is_binary(bucket) and is_binary(object) do
+    with {:ok, %Response{body: body, status_code: 200}} <- HTTPoison.get(object_url(bucket, object), [auth_header()]),
+         {:ok, data} <- Poison.decode(body),
+         {:ok, object} <- Object.from_json(data) do
+      {:ok, object}
     else
       {:ok, %Response{status_code: 400}} -> {:error, :invalid_request}
       {:ok, %Response{status_code: 401}} -> {:error, :not_authorized}

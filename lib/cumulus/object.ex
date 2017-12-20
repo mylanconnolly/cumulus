@@ -9,19 +9,12 @@ defmodule Cumulus.Object do
     content_type: nil,
     time_created: nil,
     updated: nil,
-    time_deleted: nil,
     storage_class: nil,
     time_storage_class_updated: nil,
     size: nil,
-    md5hash: nil,
+    md5_hash: nil,
     media_link: nil,
-    content_encoding: nil,
-    content_disposition: nil,
-    content_language: nil,
-    cache_control: nil,
-    metadata: nil,
     crc32c: nil,
-    component_count: nil,
     etag: nil
   ]
 
@@ -40,44 +33,41 @@ defmodule Cumulus.Object do
     "contentType" => content_type,
     "timeCreated" => time_created,
     "updated" => updated,
-    "timeDeleted" => time_deleted,
     "storageClass" => storage_class,
     "timeStorageClassUpdated" => time_storage_class_updated,
     "size" => size,
-    "md5hash" => md5hash,
+    "md5Hash" => md5_hash,
     "mediaLink" => media_link,
-    "contentEncoding" => content_encoding,
-    "contentDisposition" => content_disposition,
-    "contentLanguage" => content_language,
-    "cacheControl" => cache_control,
     "crc32c" => crc32c,
-    "componentCount" => component_count,
     "etag" => etag
   }) do
-    {:ok, %__MODULE__{
-      id: id,
-      self_link: self_link,
-      name: name,
-      bucket: bucket,
-      generation: generation,
-      metageneration: metageneration,
-      content_type: content_type,
-      time_created: time_created,
-      updated: updated,
-      time_deleted: time_deleted,
-      storage_class: storage_class,
-      time_storage_class_updated: time_storage_class_updated,
-      size: size,
-      md5hash: md5hash,
-      media_link: media_link,
-      content_encoding: content_encoding,
-      content_disposition: content_disposition,
-      content_language: content_language,
-      cache_control: cache_control,
-      crc32c: crc32c,
-      component_count: component_count,
-      etag: etag
-    }}
+    with {:ok, time_created_ts, _} <- DateTime.from_iso8601(time_created),
+         {:ok, updated_ts, _} <- DateTime.from_iso8601(updated),
+         {:ok, time_storage_class_updated_ts, _} <- DateTime.from_iso8601(time_storage_class_updated) do
+      {:ok, %__MODULE__{
+        id: id,
+        self_link: self_link,
+        name: name,
+        bucket: bucket,
+        generation: generation,
+        metageneration: metageneration,
+        content_type: content_type,
+        time_created: time_created_ts,
+        updated: updated_ts,
+        storage_class: storage_class,
+        time_storage_class_updated: time_storage_class_updated_ts,
+        size: size,
+        md5_hash: md5_hash,
+        media_link: media_link,
+        crc32c: crc32c,
+        etag: etag
+      }}
+    else
+      _ -> {:error, :invalid_format}
+    end
   end
-  def from_json(_), do: {:error, :invalid_format}
+  def from_json(body) do
+    IO.inspect body
+    {:error, :invalid_format}
+  end
 end
