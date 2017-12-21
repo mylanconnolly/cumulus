@@ -1,6 +1,6 @@
 # Cumulus
 
-**TODO: Add description**
+This is a simple client for Google Cloud Storage.
 
 ## Installation
 
