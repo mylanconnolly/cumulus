@@ -197,7 +197,7 @@ defmodule Cumulus do
 
   defp encode_path_component(component), do: URI.encode_www_form(component)
 
-  defp put_file(location, filepath, key \\ nil, hash \\ nil) do
+  defp put_file(location, filepath, key, hash) do
     headers =
       case [key, hash] do
         [k, h] when is_binary(k) and is_binary(h) -> crypt_headers(k, h)
