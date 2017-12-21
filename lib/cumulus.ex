@@ -93,6 +93,45 @@ defmodule Cumulus do
   @doc """
   This function is used to save a file into a given bucket.
 
+  This function is very similar to `save_object/5` except it allows you to
+  specify options manually, instead of us trying to guess at them. For now,
+  these options are limited to:
+
+  - `mime` Is the mimetype of the file. This is useful for handling uploads in
+    Plug, since it does not save a file extension in the file path.
+
+  Possible return values are:
+
+  - `{:error, :not_found}` is used for buckets that are not found in the system
+  - `{:error, :not_authorized}` is used for buckets that you do not have access
+    to
+  - `{:error, :invalid_request}` is used for requests where the bucket or
+    object name is invalid
+  - `{:ok, object}` means the file was saved successfully
+  """
+  def save_object(bucket, object, filepath, opts, key \\ nil, hash \\ nil) do
+    headers =
+      case [key, hash] do
+        [k, h] when is_binary(k) and is_binary(h) -> crypt_headers(k, h)
+        _ -> [auth_header()]
+      end
+    mime = Keyword.get(opts, :mime, MIME.from_path(filepath))
+    headers = [{:"X-Upload-Content-Type", mime} | headers]
+    case HTTPoison.post(bucket_upload_url(bucket, object), "", headers) do
+      {:ok, %Response{status_code: 200, headers: headers}} ->
+        location = get_location(headers)
+        put_file(location, filepath, key, hash)
+      {:ok, %Response{status_code: 400}} -> {:error, :invalid_request}
+      {:ok, %Response{status_code: 401}} -> {:error, :not_authorized}
+      {:ok, %Response{status_code: 404}} -> {:error, :not_found}
+    end
+  end
+
+  @doc """
+  This function is used to save a file into a given bucket.
+
+  Possible return values are:
+
   - `{:error, :not_found}` is used for buckets that are not found in the system
   - `{:error, :not_authorized}` is used for buckets that you do not have access
     to
